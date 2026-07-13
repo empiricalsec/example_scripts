@@ -1,0 +1,33 @@
+# Local-only notes (Claude Code)
+CLAUDE.local.md
+
+# Secrets / local env
+.envrc
+.env
+.env.*
+*.local
+
+# Script output artifacts
+output/
+*.json.gz
+*.tar.gz
+*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+uv.lock
+
+# Scratch / local-only files (reference docs, ad-hoc data)
+tmp/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
