@@ -21,11 +21,17 @@ The `src/` tree keeps **reusable clients** and **shared utilities** separate fro
 
 ```sh
 uv sync                     # install (editable) + test deps
-direnv allow                # load .envrc
 ```
 
-Required env vars (see `.envrc`): `EMPIRICAL_CLIENT_ID`, `EMPIRICAL_CLIENT_SECRET`,
-`QUALYS_USERNAME`, `QUALYS_PASSWORD`, `QUALYS_API_URL`.
+Set the following environment variables before running (however you prefer to manage
+them — shell export, `.env` loader, secrets manager, etc.). See `.env.example` for a
+template.
+
+- `EMPIRICAL_CLIENT_ID`
+- `EMPIRICAL_CLIENT_SECRET`
+- `QUALYS_USERNAME`
+- `QUALYS_PASSWORD`
+- `QUALYS_API_URL`
 
 ## Scripts
 

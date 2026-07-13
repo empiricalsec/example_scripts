@@ -5,6 +5,7 @@ CLAUDE.local.md
 .envrc
 .env
 .env.*
+!.env.example
 *.local
 
 # Script output artifacts
