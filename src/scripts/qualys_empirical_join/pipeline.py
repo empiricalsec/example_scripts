@@ -47,12 +47,20 @@ class JoinPipeline:
 
         hot = self._empirical.high_score_cves(s.score_threshold)
 
-        qid_map = self._qualys.knowledge_base(
-            id_min=s.id_min,
-            id_max=s.id_max,
-            batch_size=s.batch_size,
-            extra=s.kb_filters,
-        )
+        if s.source == "detection":
+            detected = self._qualys.host_detections(extra=s.detection_filters)
+            logger.info("Host Detection returned %d unique QIDs", len(detected))
+            qid_map = self._qualys.knowledge_base_by_ids(
+                detected, batch_size=s.batch_size, extra=s.kb_filters
+            )
+        else:
+            detected = None
+            qid_map = self._qualys.knowledge_base(
+                id_min=s.id_min,
+                id_max=s.id_max,
+                batch_size=s.batch_size,
+                extra=s.kb_filters,
+            )
 
         matched = join(qid_map, hot)
         logger.info(
@@ -61,19 +69,27 @@ class JoinPipeline:
             s.score_threshold,
         )
 
+        now = datetime.now(timezone.utc)
         manifest = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": now.isoformat(),
             "qualys_api_url": s.qualys_url,
+            "source": s.source,
             "score_threshold": s.score_threshold,
-            "id_min": s.id_min,
-            "id_max": s.id_max,
             "kb_filters": s.kb_filters,
             "high_score_cve_count": len(hot),
-            "qids_scanned": len(qid_map),
+            "qids_resolved": len(qid_map),
             "qids_matched": len(matched),
             "matched_pairs": sum(len(m.matched_cves) for m in matched),
         }
+        if s.source == "detection":
+            manifest["asset_groups"] = s.asset_groups
+            manifest["detection_filters"] = s.detection_filters
+            manifest["qids_detected"] = len(detected)
+        else:
+            manifest["id_min"] = s.id_min
+            manifest["id_max"] = s.id_max
 
-        outputs = ReportWriter(matched, s.out_dir).write_all(manifest)
+        stamp = now.strftime("%Y%m%dT%H%M%SZ")
+        outputs = ReportWriter(matched, s.out_dir, timestamp=stamp).write_all(manifest)
         logger.info("Wrote:\n  %s", "\n  ".join(outputs.values()))
         return outputs

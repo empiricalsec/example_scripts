@@ -6,8 +6,9 @@ Runs two independent, read-only checks and prints PASS/FAIL for each:
   1. Empirical  - exchange client id/secret for a JWT, then make one tiny
                   /api/search call (high threshold => small result).
   2. Qualys     - HTTP Basic auth against the KnowledgeBase API for a single
-                  small QID window (id_min/id_max), confirming the API Server
-                  URL + credentials work.
+                  small QID window (id_min/id_max) and a one-host Host Detection
+                  probe, confirming the API Server URL + credentials work for
+                  both FO endpoints the join uses.
 
 Nothing is written to disk and no full downloads happen. Exit code is 0 only if
 every check that has credentials configured passes.
@@ -74,7 +75,7 @@ class CredentialChecker:
             return False
 
     def check_qualys(self) -> bool:
-        print("== Qualys KnowledgeBase ==")
+        print("== Qualys (KnowledgeBase + Host Detection) ==")
         username = os.environ.get("QUALYS_USERNAME")
         password = os.environ.get("QUALYS_PASSWORD")
         base_url = self._qualys_url
@@ -88,6 +89,9 @@ class CredentialChecker:
             # attempt (401s are not retried), so it will not lock the account.
             qids = client.knowledge_base(id_min=1, id_max=100, batch_size=100)
             print(f"  auth + KnowledgeBase OK ({len(qids)} QIDs returned for QIDs 1-100)")
+            # Tiny Host Detection probe (default join source): one host at most.
+            detected = client.host_detections(truncation_limit=1)
+            print(f"  Host Detection OK ({len(detected)} QIDs on the first host)")
             print("  PASS")
             return True
         except Exception as exc:  # noqa: BLE001

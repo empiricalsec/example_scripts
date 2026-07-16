@@ -24,10 +24,40 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "https://qualysapi.qg2.apps.qualys.com (or $QUALYS_API_URL). "
         "Find yours in the Qualys UI under Help > About.",
     )
-    p.add_argument("--id-min", type=int, default=1, help="Lowest QID to fetch")
-    p.add_argument("--id-max", type=int, default=1_000_000, help="Highest QID to fetch")
     p.add_argument(
-        "--batch-size", type=int, default=10_000, help="QIDs per KnowledgeBase request"
+        "--source",
+        choices=["detection", "knowledge-base"],
+        default="detection",
+        help="QID source: 'detection' (default) uses the Host Detection API -- the "
+        "org's live vulnerability posture (which QIDs are currently detected across "
+        "assets), then maps those QIDs to CVEs via the KnowledgeBase. "
+        "'knowledge-base' scans the full KnowledgeBase over the QID id range.",
+    )
+    p.add_argument(
+        "--asset-group",
+        action="append",
+        metavar="TITLE",
+        help="Detection mode: scope to asset group title(s) (Qualys ag_titles). "
+        "Repeatable and/or comma-separated; omit for whole-org posture. "
+        "For a title containing a comma, use repeated --asset-group flags.",
+    )
+    p.add_argument(
+        "--status",
+        help="Detection filter: detection status list, e.g. Active,New,Re-Opened",
+    )
+    p.add_argument("--severities", help="Detection filter: severities, e.g. 4,5")
+    p.add_argument("--show-igs", help="Detection filter: include Information Gathered (0/1)")
+    p.add_argument(
+        "--id-min", type=int, default=1, help="Lowest QID to fetch (knowledge-base mode)"
+    )
+    p.add_argument(
+        "--id-max", type=int, default=1_000_000, help="Highest QID to fetch (knowledge-base mode)"
+    )
+    p.add_argument(
+        "--batch-size",
+        type=int,
+        default=10_000,
+        help="QIDs per KnowledgeBase request (also the ids-chunk size in detection mode)",
     )
     p.add_argument("--modified-after", help="KB filter: last_modified_after (YYYY-MM-DD)")
     p.add_argument("--modified-before", help="KB filter: last_modified_before (YYYY-MM-DD)")

@@ -8,23 +8,34 @@ import io
 import json
 import os
 import tarfile
+from datetime import datetime, timezone
 
 from .models import MatchedQid
 
-JSON_GZ_NAME = "results.json.gz"
-CSV_NAME = "results.csv"
-TARBALL_NAME = "results.tar.gz"
+
+def _utc_stamp() -> str:
+    """A filesystem-safe UTC timestamp, e.g. 20260715T153045Z."""
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 class ReportWriter:
-    """Writes the matched QIDs to disk in every supported artifact format."""
+    """Writes the matched QIDs to disk in every supported artifact format.
 
-    def __init__(self, matched: list[MatchedQid], out_dir: str):
+    Filenames carry a UTC timestamp (``results-<stamp>.*``) so successive runs
+    accumulate rather than overwrite. Pass ``timestamp`` to control the stamp
+    (e.g. to align it with the manifest's ``generated_at``); it defaults to now.
+    """
+
+    def __init__(self, matched: list[MatchedQid], out_dir: str, timestamp: str | None = None):
         self._matched = matched
         self._out_dir = out_dir
-        self.json_gz_path = os.path.join(out_dir, JSON_GZ_NAME)
-        self.csv_path = os.path.join(out_dir, CSV_NAME)
-        self.tarball_path = os.path.join(out_dir, TARBALL_NAME)
+        stamp = timestamp or _utc_stamp()
+        self.json_gz_name = f"results-{stamp}.json.gz"
+        self.csv_name = f"results-{stamp}.csv"
+        self.tarball_name = f"results-{stamp}.tar.gz"
+        self.json_gz_path = os.path.join(out_dir, self.json_gz_name)
+        self.csv_path = os.path.join(out_dir, self.csv_name)
+        self.tarball_path = os.path.join(out_dir, self.tarball_name)
 
     def write_all(self, manifest: dict) -> dict[str, str]:
         """Write the JSON, CSV, and tarball; return a name->path map of outputs."""
@@ -33,9 +44,9 @@ class ReportWriter:
         self.write_csv()
         self.write_tarball(manifest)
         return {
-            JSON_GZ_NAME: self.json_gz_path,
-            CSV_NAME: self.csv_path,
-            TARBALL_NAME: self.tarball_path,
+            self.json_gz_name: self.json_gz_path,
+            self.csv_name: self.csv_path,
+            self.tarball_name: self.tarball_path,
         }
 
     def write_json_gz(self) -> None:
@@ -67,8 +78,8 @@ class ReportWriter:
     def write_tarball(self, manifest: dict) -> None:
         """Bundle the JSON + CSV plus a manifest.json into a .tar.gz."""
         with tarfile.open(self.tarball_path, "w:gz") as tar:
-            tar.add(self.json_gz_path, arcname=JSON_GZ_NAME)
-            tar.add(self.csv_path, arcname=CSV_NAME)
+            tar.add(self.json_gz_path, arcname=self.json_gz_name)
+            tar.add(self.csv_path, arcname=self.csv_name)
             data = json.dumps(manifest, indent=2).encode("utf-8")
             info = tarfile.TarInfo(name="manifest.json")
             info.size = len(data)
