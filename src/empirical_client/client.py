@@ -58,14 +58,28 @@ class EmpiricalClient:
             self._token = self.fetch_token()
         return {"Authorization": f"Bearer {self._token}"}
 
-    @with_retry
     def high_score_cves(self, threshold: float) -> dict[str, float]:
         """Return {cve_id: global_score(0-100)} for CVEs scoring > threshold."""
         logger.info("Querying Empirical for CVEs with global score > %s", threshold)
+        return self._search_scores(f"score:>{threshold}")
+
+    def all_global_scores(self) -> dict[str, float]:
+        """Return {cve_id: global_score(0-100)} for *every* scored CVE (no threshold).
+
+        Uses the ``score:>=0`` match-all query so the caller can look up any CVE's
+        score locally. The ``score`` field in the query syntax is on the 0-100
+        scale, so ``>=0`` includes the entire scored corpus.
+        """
+        logger.info("Querying Empirical for all global scores (score:>=0)")
+        return self._search_scores("score:>=0")
+
+    @with_retry
+    def _search_scores(self, query: str) -> dict[str, float]:
+        """Stream ``/api/search`` for ``query`` -> {CVE_ID(upper): score(0-100)}."""
         resp = self._session.get(
             f"{EMPIRICAL_BASE}/api/search",
             params={
-                "q": f"score:>{threshold}",
+                "q": query,
                 "scoring_model": "global",
                 "accept": "application/jsonl",
             },
@@ -75,7 +89,7 @@ class EmpiricalClient:
         )
         check_response(resp, "Empirical /api/search")
 
-        hot: dict[str, float] = {}
+        scores: dict[str, float] = {}
         for line in resp.iter_lines(decode_unicode=True):
             if not line or not line.strip():
                 continue
@@ -85,6 +99,6 @@ class EmpiricalClient:
                 continue
             score = extract_global_score(record)
             if score is not None:
-                hot[cve.upper()] = score
-        logger.info("Empirical returned %d high-score CVEs", len(hot))
-        return hot
+                scores[cve.upper()] = score
+        logger.info("Empirical returned %d scored CVEs for %r", len(scores), query)
+        return scores

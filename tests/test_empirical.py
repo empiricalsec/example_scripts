@@ -56,3 +56,15 @@ def test_high_score_cves_parses_jsonl_and_uppercases(sample_search_jsonl):
     assert hot == {"CVE-2021-1111": 92.0, "CVE-2021-2222": 88.0}
     assert client._session.last_params["q"] == "score:>70"
     assert client._session.last_params["scoring_model"] == "global"
+
+
+def test_all_global_scores_uses_match_all_query(sample_search_jsonl):
+    client = EmpiricalClient("id", "secret")
+    client._token = "already-have-one"  # skip the token exchange
+    client._session = _FakeSession(sample_search_jsonl.split("\n"))
+
+    scores = client.all_global_scores()
+
+    assert scores == {"CVE-2021-1111": 92.0, "CVE-2021-2222": 88.0}
+    assert client._session.last_params["q"] == "score:>=0"
+    assert client._session.last_params["scoring_model"] == "global"
