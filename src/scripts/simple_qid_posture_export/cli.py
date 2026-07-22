@@ -45,14 +45,35 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="QIDs per KnowledgeBase request (the ids-chunk size)",
     )
     p.add_argument("--out-dir", default="./output", help="Output directory")
+    p.add_argument(
+        "--min-rows",
+        type=int,
+        default=None,
+        help="Validation: flag the run if fewer than this many rows are written "
+        "(default 500, or $MIN_ROWS). Set 0 to disable the check.",
+    )
+    p.add_argument(
+        "--alert-email-to",
+        action="append",
+        metavar="EMAIL",
+        help="Send an email alert (via mailx) when validation fails. Repeatable "
+        "and/or comma-separated; setting any recipient enables alerts (or set "
+        "$ALERT_EMAIL_TO). Requires a working mailx/MTA on the host.",
+    )
+    p.add_argument(
+        "--alert-email-from",
+        metavar="EMAIL",
+        help="Optional sender address for alert emails (mailx -r; or $ALERT_EMAIL_FROM).",
+    )
     return p.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> None:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     settings = Settings.from_args(args)
-    PostureExportPipeline.from_settings(settings).run()
+    result = PostureExportPipeline.from_settings(settings).run()
+    return 0 if result.validation.ok else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from qualys_client import QidRecord
-from scripts.qid_posture_export.reduce import reduce_to_qid_scores, round_half_up
+from scripts.simple_qid_posture_export.reduce import reduce_to_qid_scores, round_half_up
 
 
 @pytest.mark.parametrize(

@@ -22,13 +22,15 @@ from __future__ import annotations
 
 from .config import Settings
 from .output import CsvWriter
-from .pipeline import PostureExportPipeline
+from .pipeline import PostureExportPipeline, RunResult, build_alerter
 from .reduce import reduce_to_qid_scores, round_half_up
 
 __all__ = [
     "CsvWriter",
     "PostureExportPipeline",
+    "RunResult",
     "Settings",
+    "build_alerter",
     "reduce_to_qid_scores",
     "round_half_up",
 ]

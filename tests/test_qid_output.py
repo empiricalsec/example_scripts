@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import os
 
-from scripts.qid_posture_export.output import CsvWriter
+from scripts.simple_qid_posture_export.output import CsvWriter
 
 
 def test_write_csv_header_and_rows(tmp_path):

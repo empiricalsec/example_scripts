@@ -6,12 +6,12 @@ A home for Empirical Security tooling: reusable API clients plus runnable script
 
 ```
 src/
-  shared/                   cross-cutting utilities (HTTP retry, response/credential checks, env)
+  shared/                   cross-cutting utilities (HTTP retry, response/credential checks, env, email alerts, row-count validation)
   empirical_client/         reusable client for the Empirical Security API
   qualys_client/            reusable client for the Qualys VM/FO APIs (KnowledgeBase + Host Detection)
   scripts/
     qualys_empirical_join/  the join script (composes the two clients)
-    qid_posture_export/     one-row-per-QID posture export (highest global score, rounded)
+    simple_qid_posture_export/  one-row-per-QID posture export (highest global score, rounded)
 tests/                      offline unit tests (HTTP mocked)
 ```
 
@@ -92,7 +92,7 @@ instead of overwriting:
 - `results-<stamp>.csv` — one row per QID+CVE (`qid,title,cve,global_score`)
 - `results-<stamp>.tar.gz` — the two files above plus `manifest.json` (run parameters + counts)
 
-### `qid-posture-export`
+### `simple-qid-posture-export`
 
 Exports the org's **entire live vulnerability posture** as a compact CSV with
 **one row per QID**. Each QID is scored with the **highest** Empirical Global
@@ -116,17 +116,41 @@ successive daily runs of this export).
 
 ```sh
 # whole-org posture
-uv run qid-posture-export --qualys-url https://qualysapi.qg2.apps.qualys.com
+uv run simple-qid-posture-export --qualys-url https://qualysapi.qg2.apps.qualys.com
 
 # scoped to asset group(s), only active/new/re-opened detections
-uv run qid-posture-export --asset-group "Prod Web" --status "Active,New,Re-Opened"
+uv run simple-qid-posture-export --asset-group "Prod Web" --status "Active,New,Re-Opened"
 ```
 
 Key flags: `--qualys-url`, `--asset-group`, `--status` / `--severities` /
-`--show-igs`, `--batch-size`, `--out-dir` (default `./output`).
+`--show-igs`, `--batch-size`, `--out-dir` (default `./output`),
+`--min-rows` (default 500), `--alert-email-to` / `--alert-email-from`.
 
 **Output**: a single UTC-stamped CSV, e.g. `qid-posture-20260721T153045Z.csv`,
 with header `qid,score` (one row per QID, sorted by QID ascending).
+
+#### Validation & email alerts
+
+The export runs unattended, so it validates its own output size: a run that
+writes **fewer than `--min-rows` rows** (default **500**, or `$MIN_ROWS`; set `0`
+to disable) is treated as a failure — it's logged as an error and the process
+**exits non-zero** so a scheduler flags it. The CSV is still written; validation
+is a signal, not a gate.
+
+Email alerts are **optional and off by default**. They're enabled purely by
+configuring a recipient — set `$ALERT_EMAIL_TO` (or pass `--alert-email-to`,
+repeatable/comma-separated). When enabled, a validation failure sends an email
+via the host's **`mailx`**, so the host must have `mailx` installed with a working
+mail setup (local MTA / relay). Optional: `$ALERT_EMAIL_FROM` /
+`--alert-email-from` (passed as `mailx -r`) and `$ALERT_EMAIL_SUBJECT`. A mail
+delivery failure is logged but never masks the validation failure. (`-r` is the
+common BSD/macOS/RHEL `mailx` spelling; some variants differ.)
+
+```sh
+# alert oncall if the whole-org run comes back suspiciously small
+ALERT_EMAIL_TO=oncall@example.com uv run simple-qid-posture-export \
+  --qualys-url https://qualysapi.qg2.apps.qualys.com --min-rows 750
+```
 
 ## Test
 

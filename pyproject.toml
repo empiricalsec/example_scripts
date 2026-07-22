@@ -11,7 +11,7 @@ dependencies = [
 [project.scripts]
 qualys-empirical-join = "scripts.qualys_empirical_join.cli:main"
 qualys-empirical-check = "scripts.qualys_empirical_join.credentials_check:main"
-qid-posture-export = "scripts.qid_posture_export.cli:main"
+simple-qid-posture-export = "scripts.simple_qid_posture_export.cli:main"
 
 [dependency-groups]
 dev = [
