@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import gzip
+
 import pytest
 
 # A minimal KnowledgeBase response: two well-formed VULNs (one with two CVEs,
@@ -118,3 +120,12 @@ def sample_detection_pages() -> tuple[str, str]:
 @pytest.fixture
 def sample_search_jsonl() -> str:
     return SAMPLE_SEARCH_JSONL
+
+
+# The /api/cves/all export is the same JSONL, delivered as a gzipped (.gz) body.
+SAMPLE_CVES_ALL_GZ = gzip.compress(SAMPLE_SEARCH_JSONL.encode("utf-8"))
+
+
+@pytest.fixture
+def sample_cves_all_gz() -> bytes:
+    return SAMPLE_CVES_ALL_GZ

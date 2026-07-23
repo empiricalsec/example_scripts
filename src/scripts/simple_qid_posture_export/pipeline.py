@@ -77,11 +77,16 @@ class PostureExportPipeline:
         """Fetch, reduce, write the CSV, then validate (alerting on failure)."""
         s = self._settings
 
-        detected = self._qualys.host_detections(extra=s.detection_filters)
-        logger.info("Host Detection returned %d unique QIDs", len(detected))
-        qid_map = self._qualys.knowledge_base_by_ids(detected, batch_size=s.batch_size)
+        try:
+            detected = self._qualys.host_detections(extra=s.detection_filters)
+            logger.info("Host Detection returned %d unique QIDs", len(detected))
+            qid_map = self._qualys.knowledge_base_by_ids(detected, batch_size=s.batch_size)
 
-        scores = self._empirical.all_global_scores()
+            scores = self._empirical.all_global_scores()
+        except Exception as exc:
+            logger.error("Failed to fetch source data: %s", exc)
+            self._alert_failure("fetching source data (Qualys/Empirical)", exc)
+            raise
 
         rows = reduce_to_qid_scores(qid_map, scores)
         logger.info("%d of %d resolved QIDs have >=1 scored CVE", len(rows), len(qid_map))
@@ -98,24 +103,37 @@ class PostureExportPipeline:
 
         return RunResult(csv_path=path, validation=validation)
 
-    def _alert(self, validation: ValidationResult, path: str) -> None:
-        """Email the validation failure if an alerter is configured (non-fatal)."""
-        if self._alerter is None:
-            logger.warning(
-                "Validation failed but no alert recipient configured; skipping email"
-            )
-            return
+    @property
+    def _scope(self) -> str:
+        """Human-readable description of the run's asset scope, for alert bodies."""
+        return ", ".join(self._settings.asset_groups) or "whole org"
 
-        s = self._settings
-        scope = ", ".join(s.asset_groups) if s.asset_groups else "whole org"
-        body = (
-            f"{validation.message}\n\n"
-            f"CSV: {path}\n"
-            f"Scope: {scope}\n"
-            f"Rows written: {validation.row_count}\n"
-            f"Minimum expected: {validation.min_rows}\n"
-        )
+    def _send_alert(self, body: str, *, context: str) -> None:
+        """Email ``body`` if an alerter is configured; never fatal.
+
+        ``context`` describes the situation for the "no recipient configured" log
+        line when alerting is disabled.
+        """
+        if self._alerter is None:
+            logger.warning("%s but no alert recipient configured; skipping email", context)
+            return
         try:
             self._alerter.send(body)
         except AlertError as exc:
             logger.error("Email alert failed: %s", exc)
+
+    def _alert(self, validation: ValidationResult, path: str) -> None:
+        """Email the validation failure if an alerter is configured (non-fatal)."""
+        body = (
+            f"{validation.message}\n\n"
+            f"CSV: {path}\n"
+            f"Scope: {self._scope}\n"
+            f"Rows written: {validation.row_count}\n"
+            f"Minimum expected: {validation.min_rows}\n"
+        )
+        self._send_alert(body, context="Validation failed")
+
+    def _alert_failure(self, stage: str, exc: Exception) -> None:
+        """Email that the run failed at ``stage`` (non-fatal if the alerter errors)."""
+        body = f"QID posture export failed while {stage}.\n\nScope: {self._scope}\nError: {exc!r}\n"
+        self._send_alert(body, context=f"Run failed at {stage}")

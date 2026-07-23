@@ -16,6 +16,7 @@ simple-qid-posture-export = "scripts.simple_qid_posture_export.cli:main"
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "ruff>=0.6",
 ]
 
 [build-system]
@@ -29,9 +30,6 @@ packages = [
     "src/qualys_client",
     "src/scripts",
 ]
-
-[tool.black]
-line-length = 100
 
 [tool.ruff]
 line-length = 100

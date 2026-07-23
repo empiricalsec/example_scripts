@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import csv
 
+import pytest
+
 from qualys_client import QidRecord
 from scripts.simple_qid_posture_export.config import Settings
 from scripts.simple_qid_posture_export.pipeline import PostureExportPipeline, build_alerter
@@ -142,3 +144,30 @@ def test_alert_send_error_is_logged_not_fatal(tmp_path):
     ).run()
 
     assert result.validation.ok is False
+
+
+class _FailingEmpirical:
+    def all_global_scores(self) -> dict[str, float]:
+        raise RuntimeError("cves/all export not ready after 30 attempts")
+
+
+def test_score_fetch_failure_alerts_and_reraises(tmp_path):
+    settings = _settings(tmp_path)
+    alerter = _RecordingAlerter()
+
+    pipeline = PostureExportPipeline(
+        _FailingEmpirical(), _FakeQualys(), settings, alerter
+    )
+    with pytest.raises(RuntimeError, match="cves/all export not ready"):
+        pipeline.run()
+
+    assert len(alerter.bodies) == 1
+    assert "cves/all export" in alerter.bodies[0]
+
+
+def test_score_fetch_failure_without_alerter_still_reraises(tmp_path):
+    settings = _settings(tmp_path)
+
+    pipeline = PostureExportPipeline(_FailingEmpirical(), _FakeQualys(), settings)
+    with pytest.raises(RuntimeError, match="cves/all export not ready"):
+        pipeline.run()
