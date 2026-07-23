@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from .client import QualysClient
 from .models import QidRecord
-from .parsing import parse_kb_xml
+from .parsing import parse_detection_xml, parse_kb_xml
 
 __all__ = [
     "QidRecord",
     "QualysClient",
+    "parse_detection_xml",
     "parse_kb_xml",
 ]

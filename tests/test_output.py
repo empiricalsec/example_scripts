@@ -26,25 +26,35 @@ def _matched() -> list[MatchedQid]:
 
 def test_write_all_produces_valid_artifacts(tmp_path):
     manifest = {"score_threshold": 70.0, "qids_matched": 1}
-    outputs = ReportWriter(_matched(), str(tmp_path)).write_all(manifest)
+    writer = ReportWriter(_matched(), str(tmp_path), timestamp="20260715T153045Z")
+    outputs = writer.write_all(manifest)
 
-    assert set(outputs) == {"results.json.gz", "results.csv", "results.tar.gz"}
+    # Filenames carry the timestamp so successive runs don't overwrite.
+    assert set(outputs) == {
+        "results-20260715T153045Z.json.gz",
+        "results-20260715T153045Z.csv",
+        "results-20260715T153045Z.tar.gz",
+    }
 
     # JSON round-trips and carries the derived count.
-    with gzip.open(outputs["results.json.gz"], "rt", encoding="utf-8") as fh:
+    with gzip.open(writer.json_gz_path, "rt", encoding="utf-8") as fh:
         data = json.load(fh)
     assert data[0]["qid"] == 100
     assert data[0]["matched_cve_count"] == 2
 
     # CSV has a header plus one row per QID+CVE pair.
-    with open(outputs["results.csv"], newline="", encoding="utf-8") as fh:
+    with open(writer.csv_path, newline="", encoding="utf-8") as fh:
         rows = list(csv.reader(fh))
     assert rows[0] == ["qid", "title", "cve", "global_score"]
     assert len(rows) == 3  # header + 2 pairs
 
     # Tarball bundles both files plus the manifest.
-    with tarfile.open(outputs["results.tar.gz"], "r:gz") as tar:
+    with tarfile.open(writer.tarball_path, "r:gz") as tar:
         names = set(tar.getnames())
-        assert names == {"results.json.gz", "results.csv", "manifest.json"}
+        assert names == {
+            "results-20260715T153045Z.json.gz",
+            "results-20260715T153045Z.csv",
+            "manifest.json",
+        }
         manifest_out = json.loads(tar.extractfile("manifest.json").read())
     assert manifest_out == manifest
