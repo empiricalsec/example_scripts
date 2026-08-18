@@ -1,4 +1,4 @@
-"""End-to-end orchestration: Empirical + Qualys -> join -> written reports."""
+"""End-to-end orchestration: Qualys QIDs -> Empirical scores -> join -> reports."""
 
 from __future__ import annotations
 
@@ -45,8 +45,7 @@ class JoinPipeline:
         """Execute the full join and write all artifacts; return output paths."""
         s = self._settings
 
-        hot = self._empirical.high_score_cves(s.score_threshold)
-
+        # Qualys first: the org's QIDs determine which CVEs need scoring.
         if s.source == "detection":
             detected = self._qualys.host_detections(extra=s.detection_filters)
             logger.info("Host Detection returned %d unique QIDs", len(detected))
@@ -62,6 +61,19 @@ class JoinPipeline:
                 extra=s.kb_filters,
             )
 
+        referenced = {cve for rec in qid_map.values() for cve in rec.cves}
+        logger.info("%d QIDs reference %d unique CVEs", len(qid_map), len(referenced))
+
+        # Score from the complete cves/all export, restricted to the CVEs the
+        # org actually has, so the report covers the full posture. (/api/search
+        # drops large streamed responses, so it is not used here.)
+        all_scores = self._empirical.all_global_scores()
+        hot = {
+            cve: score
+            for cve, score in all_scores.items()
+            if cve in referenced and score > s.score_threshold
+        }
+
         matched = join(qid_map, hot)
         logger.info(
             "%d QIDs have >=1 CVE with global score > %s",
@@ -76,6 +88,7 @@ class JoinPipeline:
             "source": s.source,
             "score_threshold": s.score_threshold,
             "kb_filters": s.kb_filters,
+            "cves_referenced": len(referenced),
             "high_score_cve_count": len(hot),
             "qids_resolved": len(qid_map),
             "qids_matched": len(matched),

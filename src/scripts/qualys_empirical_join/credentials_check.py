@@ -3,8 +3,9 @@ full join.
 
 Runs two independent, read-only checks and prints PASS/FAIL for each:
 
-  1. Empirical  - exchange client id/secret for a JWT, then make one tiny
-                  /api/search call (high threshold => small result).
+  1. Empirical  - exchange client id/secret for a JWT, make one tiny
+                  /api/search call (reads a few records, then closes), and
+                  poll /api/cves/all once (the pipelines' score source).
   2. Qualys     - HTTP Basic auth against the KnowledgeBase API for a single
                   small QID window (id_min/id_max) and a one-host Host Detection
                   probe, confirming the API Server URL + credentials work for
@@ -65,9 +66,15 @@ class CredentialChecker:
         try:
             token = client.fetch_token()
             print(f"  auth OK (token length {len(token)})")
-            # High threshold keeps the response tiny; we only need proof it works.
-            hot = client.high_score_cves(95)
-            print(f"  search OK ({len(hot)} CVEs with global score > 95)")
+            # limit=5 caps the read: thousands of CVEs score > 95, and pulling
+            # the full stream is slow and gets dropped by the server mid-way.
+            # We only need proof that an authenticated search returns records.
+            hot = client.high_score_cves(95, limit=5)
+            print(f"  search OK (sampled {len(hot)} CVEs with global score > 95)")
+            # One poll of /api/cves/all -- the score source the pipelines use.
+            status = client.probe_cves_all()
+            state = "ready" if 300 <= status < 400 else "generating"
+            print(f"  cves/all export OK (HTTP {status}, {state})")
             print("  PASS")
             return True
         except Exception as exc:  # noqa: BLE001 - surface any failure to the user

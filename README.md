@@ -43,6 +43,11 @@ above a threshold (default 70), and writes the results as gzipped JSON, CSV, and
 tarball. Scoring uses Empirical's `global` scoring model (not an entity-specific model),
 so results are consistent regardless of which entity's credentials are used.
 
+The pipeline is Qualys-first: it pulls the org's QIDs (and their CVEs) from Qualys,
+then fetches Empirical's complete `/api/cves/all` score export and narrows it to just
+the CVEs those QIDs reference, so the report covers the full posture without relying
+on large streamed `/api/search` responses.
+
 #### QID sources (`--source`)
 
 - **`detection`** (default) — the org's **live vulnerability posture**: the QIDs
@@ -105,8 +110,8 @@ How it works:
 1. Qualys **Host Detection** → the deduped set of QIDs currently detected across
    assets (scope with `--asset-group`; omit for the whole org).
 2. Qualys **KnowledgeBase** → QID → \[CVE] mappings.
-3. Empirical `/api/search` with `score:>=0` → the global score for **every**
-   scored CVE, in a single streamed request (no per-CVE calls, no cache needed).
+3. Empirical `/api/cves/all` export → the global score for **every** scored CVE,
+   in a single gzipped download (no per-CVE calls, no cache needed).
 4. Reduce to one `(qid, score)` row: `round(max score across the QID's CVEs)`.
 
 QIDs whose CVEs are all unscored (or that have no CVEs) are omitted — there is no
