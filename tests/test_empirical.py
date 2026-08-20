@@ -30,9 +30,13 @@ class _FakeResponse:
 
     def __init__(self, lines: list[str]):
         self._lines = lines
+        self.closed = False
 
     def iter_lines(self, decode_unicode: bool = False):
         yield from self._lines
+
+    def close(self):
+        self.closed = True
 
     def raise_for_status(self):  # pragma: no cover - never called on ok=True
         pass
@@ -42,10 +46,12 @@ class _FakeSession:
     def __init__(self, lines: list[str]):
         self._lines = lines
         self.last_params: dict | None = None
+        self.last_response: _FakeResponse | None = None
 
     def get(self, url, params=None, headers=None, timeout=None, stream=None):
         self.last_params = params
-        return _FakeResponse(self._lines)
+        self.last_response = _FakeResponse(self._lines)
+        return self.last_response
 
 
 def test_high_score_cves_parses_jsonl_and_uppercases(sample_search_jsonl):
@@ -58,6 +64,18 @@ def test_high_score_cves_parses_jsonl_and_uppercases(sample_search_jsonl):
     assert hot == {"CVE-2021-1111": 92.0, "CVE-2021-2222": 88.0}
     assert client._session.last_params["q"] == "score:>70"
     assert client._session.last_params["scoring_model"] == "global"
+    assert client._session.last_response.closed  # stream released after parsing
+
+
+def test_high_score_cves_limit_stops_early_and_closes(sample_search_jsonl):
+    client = EmpiricalClient("id", "secret")
+    client._token = "already-have-one"
+    client._session = _FakeSession(sample_search_jsonl.split("\n"))
+
+    hot = client.high_score_cves(70, limit=1)
+
+    assert len(hot) == 1
+    assert client._session.last_response.closed
 
 
 class _FakeGzResponse:

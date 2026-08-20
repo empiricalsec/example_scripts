@@ -82,10 +82,14 @@ class EmpiricalClient:
             self._token = self.fetch_token()
         return {"Authorization": f"Bearer {self._token}"}
 
-    def high_score_cves(self, threshold: float) -> dict[str, float]:
-        """Return {cve_id: global_score(0-100)} for CVEs scoring > threshold."""
+    def high_score_cves(self, threshold: float, limit: int | None = None) -> dict[str, float]:
+        """Return {cve_id: global_score(0-100)} for CVEs scoring > threshold.
+
+        ``limit`` caps how many records are read from the stream (see
+        ``_search_scores``); leave it ``None`` for the complete result set.
+        """
         logger.info("Querying Empirical for CVEs with global score > %s", threshold)
-        return self._search_scores(f"score:>{threshold}")
+        return self._search_scores(f"score:>{threshold}", limit=limit)
 
     def all_global_scores(self) -> dict[str, float]:
         """Return {cve_id: global_score(0-100)} for the full scored corpus.
@@ -98,6 +102,15 @@ class EmpiricalClient:
         logger.info("Fetching all global scores from %s", CVES_ALL_PATH)
         download_url = self._await_cves_all_export()
         return self._download_cves_all(download_url)
+
+    def probe_cves_all(self) -> int:
+        """One authenticated poll of ``/api/cves/all`` -- no download.
+
+        Returns the HTTP status (202 while generating, 3xx when ready). Lets
+        connectivity checks prove the pipelines' score source is reachable
+        without pulling the multi-MB export.
+        """
+        return self._get_cves_all().status_code
 
     def _await_cves_all_export(self) -> str:
         """Poll ``/api/cves/all`` until the export is ready; return its download URL.
@@ -177,8 +190,14 @@ class EmpiricalClient:
         return scores
 
     @with_retry
-    def _search_scores(self, query: str) -> dict[str, float]:
-        """Stream ``/api/search`` for ``query`` -> {CVE_ID(upper): score(0-100)}."""
+    def _search_scores(self, query: str, limit: int | None = None) -> dict[str, float]:
+        """Stream ``/api/search`` for ``query`` -> {CVE_ID(upper): score(0-100)}.
+
+        ``limit`` stops reading after that many scored records and closes the
+        connection early. The server streams full CVE records (tens of MB for
+        broad queries) and drops long-lived streams, so callers that only need
+        proof of connectivity (the credentials check) must cap the read.
+        """
         resp = self._session.get(
             f"{EMPIRICAL_BASE}/api/search",
             params={
@@ -193,12 +212,17 @@ class EmpiricalClient:
         check_response(resp, "Empirical /api/search")
 
         scores: dict[str, float] = {}
-        for line in resp.iter_lines(decode_unicode=True):
-            if not line or not line.strip():
-                continue
-            parsed = _record_score(json.loads(line))
-            if parsed is not None:
-                cve, score = parsed
-                scores[cve] = score
+        try:
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line or not line.strip():
+                    continue
+                parsed = _record_score(json.loads(line))
+                if parsed is not None:
+                    cve, score = parsed
+                    scores[cve] = score
+                    if limit is not None and len(scores) >= limit:
+                        break
+        finally:
+            resp.close()
         logger.info("Empirical returned %d scored CVEs for %r", len(scores), query)
         return scores

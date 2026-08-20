@@ -21,7 +21,12 @@ def is_transient(exc: BaseException) -> bool:
     a bad username/password will lock the Qualys account. Only network hiccups,
     5xx, and 429 (rate limit) are worth retrying.
     """
-    if isinstance(exc, (requests.ConnectionError, requests.Timeout)):
+    # ChunkedEncodingError ("Response ended prematurely") is a mid-stream
+    # disconnect; it subclasses RequestException directly, not ConnectionError.
+    if isinstance(
+        exc,
+        (requests.ConnectionError, requests.Timeout, requests.exceptions.ChunkedEncodingError),
+    ):
         return True
     if isinstance(exc, requests.HTTPError) and exc.response is not None:
         return exc.response.status_code >= 500 or exc.response.status_code == 429

@@ -11,8 +11,18 @@ from scripts.qualys_empirical_join.pipeline import JoinPipeline
 
 
 class _FakeEmpirical:
-    def high_score_cves(self, threshold: float) -> dict[str, float]:
-        return {"CVE-2021-1111": 95.0}
+    """Full-corpus scores; the pipeline must narrow them to the org's CVEs."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def all_global_scores(self) -> dict[str, float]:
+        self.calls += 1
+        return {
+            "CVE-2021-1111": 95.0,  # referenced by the fake QID, above threshold
+            "CVE-2021-2222": 40.0,  # referenced by the fake QID, below threshold
+            "CVE-2021-9999": 99.0,  # high score but not in the org's QIDs
+        }
 
 
 class _FakeQualys:
@@ -28,11 +38,19 @@ class _FakeQualys:
 
     def knowledge_base_by_ids(self, qids, batch_size=1000, extra=None):
         self.called.append("knowledge_base_by_ids")
-        return {90001: QidRecord(qid=90001, title="A", cves=["CVE-2021-1111"])}
+        return {
+            90001: QidRecord(
+                qid=90001, title="A", cves=["CVE-2021-1111", "CVE-2021-2222"]
+            )
+        }
 
     def knowledge_base(self, id_min, id_max, batch_size, extra=None):
         self.called.append("knowledge_base")
-        return {90001: QidRecord(qid=90001, title="A", cves=["CVE-2021-1111"])}
+        return {
+            90001: QidRecord(
+                qid=90001, title="A", cves=["CVE-2021-1111", "CVE-2021-2222"]
+            )
+        }
 
 
 def _settings(tmp_path, **overrides) -> Settings:
@@ -61,22 +79,29 @@ def _manifest_from_outputs(outputs: dict[str, str]) -> dict:
 
 def test_detection_source_uses_host_detections_then_kb_by_ids(tmp_path):
     qualys = _FakeQualys()
+    empirical = _FakeEmpirical()
     settings = _settings(
         tmp_path,
         source="detection",
         detection_filters={"ag_titles": "Prod Web"},
         asset_groups=["Prod Web"],
     )
-    outputs = JoinPipeline(_FakeEmpirical(), qualys, settings).run()
+    outputs = JoinPipeline(empirical, qualys, settings).run()
 
     assert qualys.called == ["host_detections", "knowledge_base_by_ids"]
     assert qualys.last_detection_extra == {"ag_titles": "Prod Web"}
+    assert empirical.calls == 1
 
     manifest = _manifest_from_outputs(outputs)
     assert manifest["source"] == "detection"
     assert manifest["qids_detected"] == 2
     assert manifest["asset_groups"] == ["Prod Web"]
     assert "id_min" not in manifest
+    # Scores are narrowed to the org's CVEs above the threshold: CVE-2021-2222
+    # (below threshold) and CVE-2021-9999 (not referenced) are excluded.
+    assert manifest["cves_referenced"] == 2
+    assert manifest["high_score_cve_count"] == 1
+    assert manifest["qids_matched"] == 1
 
 
 def test_knowledge_base_source_uses_range_scan(tmp_path):
