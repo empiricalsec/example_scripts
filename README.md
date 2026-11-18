@@ -38,9 +38,9 @@ template.
 
 ### `qualys-empirical-join`
 
-Finds Qualys QIDs that have at least one CVE whose Empirical **Global model** score is
+Finds Qualys QIDs that have at least one CVE whose Empirical **`foundation_v2` model** score is
 above a threshold (default 70), and writes the results as gzipped JSON, CSV, and a
-tarball. Scoring uses Empirical's `global` scoring model (not an entity-specific model),
+tarball. Scoring uses Empirical's `foundation_v2` scoring model (not an entity-specific model),
 so results are consistent regardless of which entity's credentials are used.
 
 The pipeline is Qualys-first: it pulls the org's QIDs (and their CVEs) from Qualys,
@@ -100,8 +100,8 @@ instead of overwriting:
 ### `simple-qid-posture-export`
 
 Exports the org's **entire live vulnerability posture** as a compact CSV with
-**one row per QID**. Each QID is scored with the **highest** Empirical Global
-model score across its CVEs, **rounded to the nearest whole number** (0–100).
+**one row per QID**. Each QID is scored with the **highest** Empirical
+`foundation_v2` model score across its CVEs, **rounded to the nearest whole number** (0–100).
 Unlike `qualys-empirical-join`, there is **no score threshold** — every detected
 QID that maps to at least one scored CVE is included.
 

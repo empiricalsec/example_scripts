@@ -20,6 +20,7 @@ from .constants import (
     CVES_ALL_POLL_TIMEOUT,
     EMPIRICAL_BASE,
     FUSIONAUTH_URL,
+    SCORING_MODEL,
 )
 
 logger = logging.getLogger("empirical_client")
@@ -29,8 +30,8 @@ def extract_global_score(record: dict) -> float | None:
     """Pull the global-model score from a search record, normalized to 0-100."""
     score = None
     scores = record.get("scores")
-    if isinstance(scores, dict) and isinstance(scores.get("global"), dict):
-        score = scores["global"].get("score")
+    if isinstance(scores, dict) and isinstance(scores.get(SCORING_MODEL), dict):
+        score = scores[SCORING_MODEL].get("score")
     if score is None:
         score = record.get("score")  # some responses surface a flat score
     if score is None:
@@ -202,7 +203,7 @@ class EmpiricalClient:
             f"{EMPIRICAL_BASE}/api/search",
             params={
                 "q": query,
-                "scoring_model": "global",
+                "scoring_model": SCORING_MODEL,
                 "accept": "application/jsonl",
             },
             headers={**self._headers(), "Accept": "application/jsonl"},

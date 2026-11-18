@@ -12,13 +12,14 @@ from empirical_client import EmpiricalClient, extract_global_score
 @pytest.mark.parametrize(
     "record, expected",
     [
-        ({"scores": {"global": {"score": 0.92}}}, 92.0),  # 0-1 prob -> 0-100
-        ({"scores": {"global": {"score": 85}}}, 85.0),  # already 0-100
+        ({"scores": {"foundation_v2": {"score": 0.92}}}, 92.0),  # 0-1 prob -> 0-100
+        ({"scores": {"foundation_v2": {"score": 85}}}, 85.0),  # already 0-100
         ({"score": 0.5}, 50.0),  # flat prob
         ({"score": 73}, 73.0),  # flat 0-100
-        ({"scores": {"global": {"score": 1.0}}}, 100.0),  # boundary <= 1.0
+        ({"scores": {"foundation_v2": {"score": 1.0}}}, 100.0),  # boundary <= 1.0
         ({"identifier": "CVE-1"}, None),  # no score at all
         ({"scores": {}}, None),  # empty scores
+        ({"scores": {"global": {"score": 0.9}}}, None),  # old model key ignored
     ],
 )
 def test_extract_global_score(record, expected):
@@ -63,7 +64,7 @@ def test_high_score_cves_parses_jsonl_and_uppercases(sample_search_jsonl):
 
     assert hot == {"CVE-2021-1111": 92.0, "CVE-2021-2222": 88.0}
     assert client._session.last_params["q"] == "score:>70"
-    assert client._session.last_params["scoring_model"] == "global"
+    assert client._session.last_params["scoring_model"] == "foundation_v2"
     assert client._session.last_response.closed  # stream released after parsing
 
 
