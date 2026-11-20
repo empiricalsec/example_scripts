@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, timezone
 
 from empirical_client import EmpiricalClient
+from empirical_client.constants import SCORING_MODEL
 from qualys_client import QualysClient
 
 from .config import Settings
@@ -86,6 +87,7 @@ class JoinPipeline:
             "generated_at": now.isoformat(),
             "qualys_api_url": s.qualys_url,
             "source": s.source,
+            "scoring_model": SCORING_MODEL,
             "score_threshold": s.score_threshold,
             "kb_filters": s.kb_filters,
             "cves_referenced": len(referenced),

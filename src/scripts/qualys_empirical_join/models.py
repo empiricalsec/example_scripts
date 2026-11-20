@@ -11,4 +11,4 @@ class MatchedQid:
 
     qid: int
     title: str
-    matched_cves: list[dict]  # [{"cve": str, "global_score": float}]
+    matched_cves: list[dict]  # [{"cve": str, "foundation_score": float}]

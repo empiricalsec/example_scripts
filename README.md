@@ -94,8 +94,8 @@ timestamp (e.g. `results-20260715T153045Z.json.gz`) so successive runs accumulat
 instead of overwriting:
 
 - `results-<stamp>.json.gz` — one object per QID (`qid`, `title`, `matched_cves`, `matched_cve_count`)
-- `results-<stamp>.csv` — one row per QID+CVE (`qid,title,cve,global_score`)
-- `results-<stamp>.tar.gz` — the two files above plus `manifest.json` (run parameters + counts)
+- `results-<stamp>.csv` — one row per QID+CVE (`qid,title,cve,foundation_score`)
+- `results-<stamp>.tar.gz` — the two files above plus `manifest.json` (run parameters + counts, including `scoring_model`)
 
 ### `simple-qid-posture-export`
 

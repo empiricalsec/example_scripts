@@ -94,6 +94,7 @@ def test_detection_source_uses_host_detections_then_kb_by_ids(tmp_path):
 
     manifest = _manifest_from_outputs(outputs)
     assert manifest["source"] == "detection"
+    assert manifest["scoring_model"] == "foundation_v2"
     assert manifest["qids_detected"] == 2
     assert manifest["asset_groups"] == ["Prod Web"]
     assert "id_min" not in manifest

@@ -70,10 +70,10 @@ class ReportWriter:
         """One row per QID+CVE pair."""
         with open(self.csv_path, "w", newline="", encoding="utf-8") as fh:
             writer = csv.writer(fh)
-            writer.writerow(["qid", "title", "cve", "global_score"])
+            writer.writerow(["qid", "title", "cve", "foundation_score"])
             for m in self._matched:
                 for hit in m.matched_cves:
-                    writer.writerow([m.qid, m.title, hit["cve"], hit["global_score"]])
+                    writer.writerow([m.qid, m.title, hit["cve"], hit["foundation_score"]])
 
     def write_tarball(self, manifest: dict) -> None:
         """Bundle the JSON + CSV plus a manifest.json into a .tar.gz."""

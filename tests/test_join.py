@@ -23,8 +23,8 @@ def test_join_matches_sorts_and_rounds():
     # Within a QID, hits are sorted by score desc, and scores are rounded to 4 dp.
     q200 = next(m for m in matched if m.qid == 200)
     assert q200.matched_cves == [
-        {"cve": "CVE-B", "global_score": 95.0},
-        {"cve": "CVE-A", "global_score": 71.1112},
+        {"cve": "CVE-B", "foundation_score": 95.0},
+        {"cve": "CVE-A", "foundation_score": 71.1112},
     ]
 
 
