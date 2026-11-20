@@ -82,7 +82,7 @@ class PostureExportPipeline:
             logger.info("Host Detection returned %d unique QIDs", len(detected))
             qid_map = self._qualys.knowledge_base_by_ids(detected, batch_size=s.batch_size)
 
-            scores = self._empirical.all_global_scores()
+            scores = self._empirical.all_foundation_scores()
         except Exception as exc:
             logger.error("Failed to fetch source data: %s", exc)
             self._alert_failure("fetching source data (Qualys/Empirical)", exc)

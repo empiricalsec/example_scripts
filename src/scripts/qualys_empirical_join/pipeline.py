@@ -68,7 +68,7 @@ class JoinPipeline:
         # Score from the complete cves/all export, restricted to the CVEs the
         # org actually has, so the report covers the full posture. (/api/search
         # drops large streamed responses, so it is not used here.)
-        all_scores = self._empirical.all_global_scores()
+        all_scores = self._empirical.all_foundation_scores()
         hot = {
             cve: score
             for cve, score in all_scores.items()
@@ -77,7 +77,7 @@ class JoinPipeline:
 
         matched = join(qid_map, hot)
         logger.info(
-            "%d QIDs have >=1 CVE with global score > %s",
+            "%d QIDs have >=1 CVE with foundation_v2 score > %s",
             len(matched),
             s.score_threshold,
         )

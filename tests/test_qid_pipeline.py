@@ -12,7 +12,7 @@ from scripts.simple_qid_posture_export.pipeline import PostureExportPipeline, bu
 
 
 class _FakeEmpirical:
-    def all_global_scores(self) -> dict[str, float]:
+    def all_foundation_scores(self) -> dict[str, float]:
         # CVE-2021-2222 scores highest for QID 90001; 90003 has no scored CVE.
         return {"CVE-2021-1111": 71.4, "CVE-2021-2222": 88.6}
 
@@ -147,7 +147,7 @@ def test_alert_send_error_is_logged_not_fatal(tmp_path):
 
 
 class _FailingEmpirical:
-    def all_global_scores(self) -> dict[str, float]:
+    def all_foundation_scores(self) -> dict[str, float]:
         raise RuntimeError("cves/all export not ready after 30 attempts")
 
 

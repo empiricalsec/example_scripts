@@ -6,7 +6,7 @@ import io
 
 import pytest
 
-from empirical_client import EmpiricalClient, extract_global_score
+from empirical_client import EmpiricalClient, extract_foundation_score
 
 
 @pytest.mark.parametrize(
@@ -22,8 +22,8 @@ from empirical_client import EmpiricalClient, extract_global_score
         ({"scores": {"global": {"score": 0.9}}}, None),  # old model key ignored
     ],
 )
-def test_extract_global_score(record, expected):
-    assert extract_global_score(record) == expected
+def test_extract_foundation_score(record, expected):
+    assert extract_foundation_score(record) == expected
 
 
 class _FakeResponse:
@@ -140,14 +140,14 @@ class _FakeCvesAllSession:
         return [c for c in self.calls if c["url"] == self.DOWNLOAD_URL]
 
 
-def test_all_global_scores_polls_then_decodes_gzip(sample_cves_all_gz):
+def test_all_foundation_scores_polls_then_decodes_gzip(sample_cves_all_gz):
     client = EmpiricalClient("id", "secret")
     client._token = "already-have-one"  # skip the token exchange
     client._cves_all_poll_interval = 0  # time.sleep(0) -> instant, no monkeypatch
     session = _FakeCvesAllSession(sample_cves_all_gz, poll_202=2)
     client._session = session
 
-    scores = client.all_global_scores()
+    scores = client.all_foundation_scores()
 
     # No-score and no-id records in the corpus are skipped; ids are upper-cased.
     assert scores == {"CVE-2021-1111": 92.0, "CVE-2021-2222": 88.0}
@@ -163,7 +163,7 @@ def test_cves_all_does_not_send_auth_on_redirect_download(sample_cves_all_gz):
     session = _FakeCvesAllSession(sample_cves_all_gz, poll_202=1)
     client._session = session
 
-    client.all_global_scores()
+    client.all_foundation_scores()
 
     # Poll requests carry the bearer token and never auto-follow the redirect.
     assert all("Authorization" in c["headers"] for c in session.export_calls())
@@ -172,7 +172,7 @@ def test_cves_all_does_not_send_auth_on_redirect_download(sample_cves_all_gz):
     assert "Authorization" not in session.download_calls()[0]["headers"]
 
 
-def test_all_global_scores_raises_when_export_never_ready(sample_cves_all_gz):
+def test_all_foundation_scores_raises_when_export_never_ready(sample_cves_all_gz):
     client = EmpiricalClient("id", "secret")
     client._token = "already-have-one"
     client._cves_all_poll_interval = 0
@@ -181,7 +181,7 @@ def test_all_global_scores_raises_when_export_never_ready(sample_cves_all_gz):
     client._session = _FakeCvesAllSession(sample_cves_all_gz, poll_202=99)
 
     with pytest.raises(RuntimeError, match="not ready after 3 attempts"):
-        client.all_global_scores()
+        client.all_foundation_scores()
 
 
 def test_await_export_accepts_non_302_redirect():

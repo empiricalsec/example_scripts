@@ -67,7 +67,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--score-threshold",
         type=float,
         default=70.0,
-        help="Global-model score threshold (0-100), exclusive",
+        help="foundation_v2 model score threshold (0-100), exclusive",
     )
     p.add_argument("--out-dir", default="./output", help="Output directory")
     return p.parse_args(argv)

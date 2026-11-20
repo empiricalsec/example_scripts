@@ -11,7 +11,7 @@ src/
   qualys_client/            reusable client for the Qualys VM/FO APIs (KnowledgeBase + Host Detection)
   scripts/
     qualys_empirical_join/  the join script (composes the two clients)
-    simple_qid_posture_export/  one-row-per-QID posture export (highest global score, rounded)
+    simple_qid_posture_export/  one-row-per-QID posture export (highest foundation_v2 score, rounded)
 tests/                      offline unit tests (HTTP mocked)
 ```
 
@@ -110,7 +110,7 @@ How it works:
 1. Qualys **Host Detection** → the deduped set of QIDs currently detected across
    assets (scope with `--asset-group`; omit for the whole org).
 2. Qualys **KnowledgeBase** → QID → \[CVE] mappings.
-3. Empirical `/api/cves/all` export → the global score for **every** scored CVE,
+3. Empirical `/api/cves/all` export → the foundation_v2 score for **every** scored CVE,
    in a single gzipped download (no per-CVE calls, no cache needed).
 4. Reduce to one `(qid, score)` row: `round(max score across the QID's CVEs)`.
 
