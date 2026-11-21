@@ -7,10 +7,11 @@ run manifest.
 
 Strategy
 --------
-1. Pull the *set* of all CVEs with foundation_v2 score > threshold from Empirical's
-   /api/search endpoint in a single (streamed) query -- far cheaper than
-   scoring each Qualys CVE individually.
-2. Pull QID -> [CVE] mappings from the Qualys KnowledgeBase API.
+1. Pull the org's QIDs and their QID -> [CVE] mappings from Qualys (Host
+   Detection + KnowledgeBase, or the KnowledgeBase alone).
+2. Fetch Empirical's complete /api/cves/all score export in one download --
+   far cheaper than scoring each Qualys CVE individually -- and keep the
+   referenced CVEs with foundation_v2 score > threshold.
 3. Keep QIDs with >= 1 CVE in the high-score set.
 """
 

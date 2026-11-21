@@ -10,8 +10,8 @@ Strategy
 --------
 1. Qualys Host Detection -> the deduped set of detected QIDs (live posture).
 2. Qualys KnowledgeBase (by ids) -> QID -> [CVE] mappings.
-3. Empirical /api/search (``score:>=0``) -> {CVE: foundation_score(0-100)} for the
-   whole scored corpus in one streamed request (no per-CVE calls, no cache).
+3. Empirical /api/cves/all export -> {CVE: foundation_score(0-100)} for the
+   whole scored corpus in one download (no per-CVE calls, no cache).
 4. Reduce to one row per QID: round(max score across its scored CVEs).
 
 The ``last_updated_at`` date is intentionally *not* produced here; it is derived
