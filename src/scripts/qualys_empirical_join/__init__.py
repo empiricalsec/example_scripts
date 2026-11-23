@@ -1,16 +1,17 @@
-"""Join Qualys KnowledgeBase QIDs with Empirical Security global-model scores.
+"""Join Qualys KnowledgeBase QIDs with Empirical Security foundation_v2 model scores.
 
 Produces the set of Qualys QIDs that have at least one associated CVE whose
-Empirical "Global" model score is greater than a threshold (default 70), and
+Empirical foundation_v2 model score is greater than a threshold (default 70), and
 writes the result as a gzipped JSON, a CSV, and a tarball bundling both plus a
 run manifest.
 
 Strategy
 --------
-1. Pull the *set* of all CVEs with global score > threshold from Empirical's
-   /api/search endpoint in a single (streamed) query -- far cheaper than
-   scoring each Qualys CVE individually.
-2. Pull QID -> [CVE] mappings from the Qualys KnowledgeBase API.
+1. Pull the org's QIDs and their QID -> [CVE] mappings from Qualys (Host
+   Detection + KnowledgeBase, or the KnowledgeBase alone).
+2. Fetch Empirical's complete /api/cves/all score export in one download --
+   far cheaper than scoring each Qualys CVE individually -- and keep the
+   referenced CVEs with foundation_v2 score > threshold.
 3. Keep QIDs with >= 1 CVE in the high-score set.
 """
 

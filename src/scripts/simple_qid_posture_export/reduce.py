@@ -22,7 +22,7 @@ def reduce_to_qid_scores(
 ) -> list[tuple[int, int]]:
     """One (qid, rounded_score) row per QID, using its highest CVE score.
 
-    Picks the max raw global score across the QID's CVEs that are present in
+    Picks the max raw foundation_v2 score across the QID's CVEs that are present in
     ``scores``, then rounds. QIDs with no scored CVE are skipped (there is no
     score to report). Rows are sorted by QID ascending. Matching assumes both
     sides upper-case CVE ids (they do).

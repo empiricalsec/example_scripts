@@ -20,17 +20,18 @@ from .constants import (
     CVES_ALL_POLL_TIMEOUT,
     EMPIRICAL_BASE,
     FUSIONAUTH_URL,
+    SCORING_MODEL,
 )
 
 logger = logging.getLogger("empirical_client")
 
 
-def extract_global_score(record: dict) -> float | None:
-    """Pull the global-model score from a search record, normalized to 0-100."""
+def extract_foundation_score(record: dict) -> float | None:
+    """Pull the foundation_v2 model score from a search record, normalized to 0-100."""
     score = None
     scores = record.get("scores")
-    if isinstance(scores, dict) and isinstance(scores.get("global"), dict):
-        score = scores["global"].get("score")
+    if isinstance(scores, dict) and isinstance(scores.get(SCORING_MODEL), dict):
+        score = scores[SCORING_MODEL].get("score")
     if score is None:
         score = record.get("score")  # some responses surface a flat score
     if score is None:
@@ -44,7 +45,7 @@ def _record_score(record: dict) -> tuple[str, float] | None:
     cve = record.get("identifier") or record.get("cve") or record.get("cve_id")
     if not cve:
         return None
-    score = extract_global_score(record)
+    score = extract_foundation_score(record)
     if score is None:
         return None
     return cve.upper(), score
@@ -58,7 +59,7 @@ class EmpiricalClient:
         self._client_secret = client_secret
         self._session = requests.Session()
         self._token: str | None = None
-        # Bounded polling for the async /api/cves/all export (see all_global_scores).
+        # Bounded polling for the async /api/cves/all export (see all_foundation_scores).
         self._cves_all_poll_interval = CVES_ALL_POLL_INTERVAL
         self._cves_all_max_attempts = CVES_ALL_MAX_ATTEMPTS
 
@@ -83,23 +84,23 @@ class EmpiricalClient:
         return {"Authorization": f"Bearer {self._token}"}
 
     def high_score_cves(self, threshold: float, limit: int | None = None) -> dict[str, float]:
-        """Return {cve_id: global_score(0-100)} for CVEs scoring > threshold.
+        """Return {cve_id: foundation_score(0-100)} for CVEs scoring > threshold.
 
         ``limit`` caps how many records are read from the stream (see
         ``_search_scores``); leave it ``None`` for the complete result set.
         """
-        logger.info("Querying Empirical for CVEs with global score > %s", threshold)
+        logger.info("Querying Empirical for CVEs with foundation_v2 score > %s", threshold)
         return self._search_scores(f"score:>{threshold}", limit=limit)
 
-    def all_global_scores(self) -> dict[str, float]:
-        """Return {cve_id: global_score(0-100)} for the full scored corpus.
+    def all_foundation_scores(self) -> dict[str, float]:
+        """Return {cve_id: foundation_score(0-100)} for the full scored corpus.
 
         Sources scores from ``GET /api/cves/all`` ("all CVEs in our system"),
         which is guaranteed complete. That endpoint is an async export: it
         returns 202 while the gzipped JSONL file is generated, then 302 with a
         ``Location`` pointing at the ready file (likely presigned storage).
         """
-        logger.info("Fetching all global scores from %s", CVES_ALL_PATH)
+        logger.info("Fetching all foundation_v2 scores from %s", CVES_ALL_PATH)
         download_url = self._await_cves_all_export()
         return self._download_cves_all(download_url)
 
@@ -202,7 +203,7 @@ class EmpiricalClient:
             f"{EMPIRICAL_BASE}/api/search",
             params={
                 "q": query,
-                "scoring_model": "global",
+                "scoring_model": SCORING_MODEL,
                 "accept": "application/jsonl",
             },
             headers={**self._headers(), "Accept": "application/jsonl"},

@@ -70,7 +70,7 @@ class CredentialChecker:
             # the full stream is slow and gets dropped by the server mid-way.
             # We only need proof that an authenticated search returns records.
             hot = client.high_score_cves(95, limit=5)
-            print(f"  search OK (sampled {len(hot)} CVEs with global score > 95)")
+            print(f"  search OK (sampled {len(hot)} CVEs with foundation_v2 score > 95)")
             # One poll of /api/cves/all -- the score source the pipelines use.
             status = client.probe_cves_all()
             state = "ready" if 300 <= status < 400 else "generating"

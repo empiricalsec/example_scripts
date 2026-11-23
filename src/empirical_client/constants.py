@@ -12,3 +12,6 @@ CVES_ALL_POLL_INTERVAL = 10  # seconds between export-readiness polls
 CVES_ALL_MAX_ATTEMPTS = 30  # bounded: ~5 min before giving up
 CVES_ALL_POLL_TIMEOUT = 60  # per poll request
 CVES_ALL_DOWNLOAD_TIMEOUT = 300  # the gzip download can be large
+
+# Empirical scoring model whose scores we consume (search param + record key).
+SCORING_MODEL = "foundation_v2"

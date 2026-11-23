@@ -17,8 +17,8 @@ def _matched() -> list[MatchedQid]:
             qid=100,
             title="A",
             matched_cves=[
-                {"cve": "CVE-B", "global_score": 95.0},
-                {"cve": "CVE-A", "global_score": 71.1112},
+                {"cve": "CVE-B", "foundation_score": 95.0},
+                {"cve": "CVE-A", "foundation_score": 71.1112},
             ],
         )
     ]
@@ -45,7 +45,7 @@ def test_write_all_produces_valid_artifacts(tmp_path):
     # CSV has a header plus one row per QID+CVE pair.
     with open(writer.csv_path, newline="", encoding="utf-8") as fh:
         rows = list(csv.reader(fh))
-    assert rows[0] == ["qid", "title", "cve", "global_score"]
+    assert rows[0] == ["qid", "title", "cve", "foundation_score"]
     assert len(rows) == 3  # header + 2 pairs
 
     # Tarball bundles both files plus the manifest.

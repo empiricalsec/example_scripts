@@ -11,7 +11,7 @@ src/
   qualys_client/            reusable client for the Qualys VM/FO APIs (KnowledgeBase + Host Detection)
   scripts/
     qualys_empirical_join/  the join script (composes the two clients)
-    simple_qid_posture_export/  one-row-per-QID posture export (highest global score, rounded)
+    simple_qid_posture_export/  one-row-per-QID posture export (highest foundation_v2 score, rounded)
 tests/                      offline unit tests (HTTP mocked)
 ```
 
@@ -38,9 +38,9 @@ template.
 
 ### `qualys-empirical-join`
 
-Finds Qualys QIDs that have at least one CVE whose Empirical **Global model** score is
+Finds Qualys QIDs that have at least one CVE whose Empirical **`foundation_v2` model** score is
 above a threshold (default 70), and writes the results as gzipped JSON, CSV, and a
-tarball. Scoring uses Empirical's `global` scoring model (not an entity-specific model),
+tarball. Scoring uses Empirical's `foundation_v2` scoring model (not an entity-specific model),
 so results are consistent regardless of which entity's credentials are used.
 
 The pipeline is Qualys-first: it pulls the org's QIDs (and their CVEs) from Qualys,
@@ -94,14 +94,14 @@ timestamp (e.g. `results-20260715T153045Z.json.gz`) so successive runs accumulat
 instead of overwriting:
 
 - `results-<stamp>.json.gz` — one object per QID (`qid`, `title`, `matched_cves`, `matched_cve_count`)
-- `results-<stamp>.csv` — one row per QID+CVE (`qid,title,cve,global_score`)
-- `results-<stamp>.tar.gz` — the two files above plus `manifest.json` (run parameters + counts)
+- `results-<stamp>.csv` — one row per QID+CVE (`qid,title,cve,foundation_score`)
+- `results-<stamp>.tar.gz` — the two files above plus `manifest.json` (run parameters + counts, including `scoring_model`)
 
 ### `simple-qid-posture-export`
 
 Exports the org's **entire live vulnerability posture** as a compact CSV with
-**one row per QID**. Each QID is scored with the **highest** Empirical Global
-model score across its CVEs, **rounded to the nearest whole number** (0–100).
+**one row per QID**. Each QID is scored with the **highest** Empirical
+`foundation_v2` model score across its CVEs, **rounded to the nearest whole number** (0–100).
 Unlike `qualys-empirical-join`, there is **no score threshold** — every detected
 QID that maps to at least one scored CVE is included.
 
@@ -110,7 +110,7 @@ How it works:
 1. Qualys **Host Detection** → the deduped set of QIDs currently detected across
    assets (scope with `--asset-group`; omit for the whole org).
 2. Qualys **KnowledgeBase** → QID → \[CVE] mappings.
-3. Empirical `/api/cves/all` export → the global score for **every** scored CVE,
+3. Empirical `/api/cves/all` export → the foundation_v2 score for **every** scored CVE,
    in a single gzipped download (no per-CVE calls, no cache needed).
 4. Reduce to one `(qid, score)` row: `round(max score across the QID's CVEs)`.
 

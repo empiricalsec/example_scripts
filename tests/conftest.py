@@ -93,7 +93,7 @@ SAMPLE_DETECTION_XML_PAGE2 = """<?xml version="1.0" encoding="UTF-8"?>
 # One JSONL record per line, mirroring Empirical's /api/search streamed output.
 SAMPLE_SEARCH_JSONL = "\n".join(
     [
-        '{"identifier": "cve-2021-1111", "scores": {"global": {"score": 0.92}}}',
+        '{"identifier": "cve-2021-1111", "scores": {"foundation_v2": {"score": 0.92}}}',
         '{"cve": "CVE-2021-2222", "score": 88}',
         '{"identifier": "CVE-2021-3333"}',  # no score -> skipped
         "",  # blank line -> skipped

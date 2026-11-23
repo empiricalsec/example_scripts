@@ -2,16 +2,16 @@
 
 Pulls the set of QIDs currently detected across assets from the Qualys Host
 Detection API, maps them to CVEs via the KnowledgeBase, and joins them against
-*every* Empirical global-model score (no threshold). Each QID is emitted once,
-scored with the highest global score across its CVEs, rounded to the nearest
+*every* Empirical foundation_v2 model score (no threshold). Each QID is emitted once,
+scored with the highest foundation_v2 score across its CVEs, rounded to the nearest
 whole number (0-100).
 
 Strategy
 --------
 1. Qualys Host Detection -> the deduped set of detected QIDs (live posture).
 2. Qualys KnowledgeBase (by ids) -> QID -> [CVE] mappings.
-3. Empirical /api/search (``score:>=0``) -> {CVE: global_score(0-100)} for the
-   whole scored corpus in one streamed request (no per-CVE calls, no cache).
+3. Empirical /api/cves/all export -> {CVE: foundation_score(0-100)} for the
+   whole scored corpus in one download (no per-CVE calls, no cache).
 4. Reduce to one row per QID: round(max score across its scored CVEs).
 
 The ``last_updated_at`` date is intentionally *not* produced here; it is derived
